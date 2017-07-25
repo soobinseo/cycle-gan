@@ -1,10 +1,16 @@
 import tensorflow as tf
+import numpy as np
 
 def lrelu(x, leak=0.2, name="lrelu"):
     with tf.variable_scope(name):
         f1 = 0.5 * (1 + leak)
         f2 = 0.5 * (1 - leak)
         return f1 * x + f2 * abs(x)
+
+def dataset_shuffling(x):
+    shuffled_idx = np.arange(len(x))
+    np.random.shuffle(shuffled_idx)
+    return x[shuffled_idx, :]
 
 def conv2d(tensor,
            output_dim,

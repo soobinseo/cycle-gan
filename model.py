@@ -1,17 +1,24 @@
 from ops import *
+import numpy as np
 
 __author__="soobin3230"
 
 class CycleGAN(object):
 
-    def __init__(self, shape, lambda_=10., learning_rate=0.0001):
+    def __init__(self, shape, epoch=1000, lambda_=10., learning_rate=0.0001):
         self.lambda_ = lambda_
         self.learning_rate = learning_rate
         width, height, channel_A, channel_B = shape[0], shape[1], shape[2], shape[3]
         self.domain_A = tf.placeholder(tf.float32, [None, width, height, channel_A])
         self.domain_B = tf.placeholder(tf.float32, [None, width, height, channel_B])
-
+        self.epoch = epoch
+        self.batch_size = 32
         self.build_graph()
+
+    def _load_dataset(self):
+        dataA = np.load("./data/dataset_trainA.npy")
+        dataB = np.load("./data/dataset_trainB.npy")
+        return dataA, dataB
 
     def _generator(self, tensor, name, reuse=False):
         """
@@ -28,10 +35,15 @@ class CycleGAN(object):
 
             # 9-blocks generator (6-blocks are available)
             c7s1 = conv2d(tensor, output_dim=32, kernel_size=7, stride=1, scope="c7s1")
+            print c7s1
             d64 = conv2d(c7s1, output_dim=64, kernel_size=3, stride=2, reflect=True, scope="d64")
+            print d64
             d128 = conv2d(d64, output_dim=128, kernel_size=3, stride=2, reflect=True, scope="d128")
+            print d128
             R_1 = residual_block(d128, name="Res_1")
+            print R_1
             R_2 = residual_block(R_1, name="Res_2")
+            print R_2
             R_3 = residual_block(R_2, name="Res_3")
             R_4 = residual_block(R_3, name="Res_4")
             R_5 = residual_block(R_4, name="Res_5")
@@ -40,9 +52,11 @@ class CycleGAN(object):
             R_8 = residual_block(R_7, name="Res_8")
             R_9 = residual_block(R_8, name="Res_9")
             u64 = deconv2d(R_9, output_shape=[width//2, height//2, 64], name="u64")
+            print u64
             u32 = deconv2d(u64, output_shape=[width, height, 64], name="u32")
-            output = conv2d(u32, output_dim=3, kernel_size=7, stride=1, norm_fn=None, activation_fn=tf.nn.tanh, reflect=True, scope="output_gen")
-
+            print u32
+            output = conv2d(u32, output_dim=3, kernel_size=7, stride=1, norm_fn=None, activation_fn=tf.nn.tanh, reflect=False, scope="output_gen")
+            print output
             return output
 
     def _discriminator(self, tensor, name, reuse=False):
@@ -98,6 +112,26 @@ class CycleGAN(object):
             .minimize(self.disc_B_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="discriminator_B"))
 
     def train_step(self):
-        pass
+        init = tf.global_variables_initializer()
 
+        dataA, dataB = self._load_dataset()
 
+        trainable_variables = tf.trainable_variables()
+
+        with tf.Session() as sess:
+            sess.run(init)
+
+            print sess.run([trainable_variables])
+            for i in range(self.epoch):
+                dataA = dataset_shuffling(dataA)
+                dataB = dataset_shuffling(dataB)
+                batch_idxs = min(len(dataA), len(dataB)) // self.batch_size
+
+                for idx in xrange(batch_idxs):
+                    batch_A = dataA[idx * self.batch_size: (idx+1) * self.batch_size]
+                    batch_B = dataB[idx * self.batch_size: (idx + 1) * self.batch_size]
+                    sess.run([self.gen_AB_train_op, self.gen_BA_train_op, self.disc_A_train_op, self.disc_B_train_op],
+                             feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
+
+                    if idx % 50 == 0:
+                        print sess.run([self.disc_A_loss, self.disc_B_loss, self.gen_AB_loss, self.gen_BA_loss], feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
