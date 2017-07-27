@@ -13,7 +13,7 @@ class CycleGAN(object):
         self.domain_A = tf.placeholder(tf.float32, [None, width, height, channel_A])
         self.domain_B = tf.placeholder(tf.float32, [None, width, height, channel_B])
         self.epoch = epoch
-        self.batch_size = 32
+        self.batch_size = 1
         self.build_graph()
 
     def _load_dataset(self):
@@ -91,14 +91,19 @@ class CycleGAN(object):
 
         self.reconstruction_loss = self.lambda_ * (tf.reduce_mean(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_mean(tf.abs((self.gen_BAB- self.domain_B))))
 
-        self.disc_A_loss = -tf.reduce_mean(tf.log(self.real_disc_A + 1e-5) + tf.log(1.-self.fake_disc_A + 1e-5))
-        print self.disc_A_loss
-        self.disc_B_loss = -tf.reduce_mean(tf.log(self.real_disc_B + 1e-5) + tf.log(1.-self.fake_disc_B + 1e-5))
-        print self.disc_B_loss
-        self.gen_BA_loss = -self.disc_A_loss + self.reconstruction_loss
-        print self.gen_BA_loss
-        self.gen_AB_loss = -self.disc_B_loss + self.reconstruction_loss
-        print self.gen_AB_loss
+        # Standard GAN loss
+        # self.disc_A_loss = -tf.reduce_mean(tf.log(self.real_disc_A + 1e-5) + tf.log(1.-self.fake_disc_A + 1e-5))
+        # self.disc_B_loss = -tf.reduce_mean(tf.log(self.real_disc_B + 1e-5) + tf.log(1.-self.fake_disc_B + 1e-5))
+        # self.gen_BA_loss = -self.disc_A_loss + self.reconstruction_loss
+        # self.gen_AB_loss = -self.disc_B_loss + self.reconstruction_loss
+
+        # LSGAN loss
+        self.reconstruction_loss = self.lambda_ * (tf.reduce_sum(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_sum(tf.abs((self.gen_BAB- self.domain_B))))
+        self.disc_A_loss = tf.reduce_sum(tf.square(1 - self.real_disc_A) + tf.square(self.fake_disc_A)) / 2
+        self.disc_B_loss = tf.reduce_sum(tf.square(1 - self.real_disc_B) + tf.square(self.fake_disc_B)) / 2
+        self.gen_BA_loss = tf.reduce_sum(tf.square(1 - self.fake_disc_A)) / 2 + self.reconstruction_loss
+        self.gen_AB_loss = tf.reduce_sum(tf.square(1 - self.fake_disc_B)) / 2 + self.reconstruction_loss
+
 
         self.gen_AB_train_op = tf.train.AdamOptimizer(self.learning_rate)\
             .minimize(self.gen_AB_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="generator_AB"))
