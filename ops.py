@@ -1,11 +1,12 @@
 import tensorflow as tf
 import numpy as np
 
-def lrelu(x, leak=0.2, name="lrelu"):
-    with tf.variable_scope(name):
-        f1 = 0.5 * (1 + leak)
-        f2 = 0.5 * (1 - leak)
-        return f1 * x + f2 * abs(x)
+def lrelu(x, leak=0.2):
+
+    f1 = 0.5 * (1 + leak)
+    f2 = 0.5 * (1 - leak)
+    output = f1 * x + f2 * abs(x)
+    return output
 
 def dataset_shuffling(x):
     shuffled_idx = np.arange(len(x))
@@ -21,17 +22,41 @@ def conv2d(tensor,
            initializer=tf.truncated_normal_initializer(stddev=0.02),
            scope="name",
            reflect=False):
+    with tf.variable_scope(scope):
+        if reflect:
+            tensor = tf.pad(tensor, [[0, 0], [1, 1], [1, 1], [0, 0]])
+            tensor_shape = tensor.get_shape().as_list()
+            filter = tf.get_variable('filter', [kernel_size, kernel_size, tensor_shape[-1], output_dim], initializer=initializer)
+            conv = tf.nn.conv2d(tensor, filter, strides=[1, stride, stride, 1], padding='VALID')
+            if norm_fn is None:
+                bn = conv
+            else:
+                bn = tf.contrib.layers.batch_norm(conv)
+            if activation_fn is not None:
+                output = activation_fn(bn)
+            else:
+                output = bn
 
-    if reflect:
-        re = tf.pad(tensor, [[0, 0], [1, 1], [1, 1], [0, 0]])
-        return tf.contrib.layers.conv2d(re, num_outputs=output_dim, kernel_size=kernel_size,
-                                        activation_fn=activation_fn, stride=stride,
-                                        normalizer_fn=norm_fn, weights_initializer=initializer, scope=scope,
-                                        padding="VALID")
-    else:
-        return tf.contrib.layers.conv2d(tensor, num_outputs=output_dim, kernel_size=kernel_size,
-                                        activation_fn=activation_fn, stride=stride,
-                                        normalizer_fn=norm_fn, weights_initializer=initializer, scope=scope, padding="SAME")
+            return output
+
+            # return tf.contrib.layers.conv2d(re, num_outputs=output_dim, kernel_size=kernel_size,
+            #                                 activation_fn=activation_fn, stride=stride,
+            #                                 normalizer_fn=norm_fn, weights_initializer=initializer, scope=scope,
+            #                                 padding="VALID")
+        else:
+            tensor_shape = tensor.get_shape().as_list()
+            filter = tf.get_variable('filters', [kernel_size, kernel_size, tensor_shape[-1], output_dim], initializer=initializer)
+            conv = tf.nn.conv2d(tensor, filter, strides=[1, stride, stride, 1], padding='SAME')
+            bn = tf.contrib.layers.batch_norm(conv)
+            if norm_fn is None:
+                bn = conv
+            else:
+                bn = tf.contrib.layers.batch_norm(conv)
+            if activation_fn is not None:
+                output = activation_fn(bn)
+            else:
+                output = bn
+            return output
 
 def deconv2d(tensor, name, output_shape, kernel_size=3): # fractional-strided conv layer
 
@@ -50,7 +75,7 @@ def residual_block(tensor, name, kernel_size=3):
 
     with tf.variable_scope(name):
         conv = conv2d(tensor, output_dim, kernel_size, reflect=True)
-        conv2 = conv2d(conv, output_dim, kernel_size, activation_fn=None, reflect=True)
+        conv2 = conv2d(conv, output_dim, kernel_size, activation_fn=None, reflect=True, scope="res2")
 
         return tensor + conv2
 

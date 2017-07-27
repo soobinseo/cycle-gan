@@ -35,26 +35,19 @@ class CycleGAN(object):
 
             # 9-blocks generator (6-blocks are available)
             c7s1 = conv2d(tensor, output_dim=32, kernel_size=7, stride=1, scope="c7s1")
-            print c7s1
             d64 = conv2d(c7s1, output_dim=64, kernel_size=3, stride=2, reflect=True, scope="d64")
-            print d64
             d128 = conv2d(d64, output_dim=128, kernel_size=3, stride=2, reflect=True, scope="d128")
-            print d128
             R_1 = residual_block(d128, name="Res_1")
-            print R_1
             R_2 = residual_block(R_1, name="Res_2")
-            print R_2
-            R_3 = residual_block(R_2, name="Res_3")
-            R_4 = residual_block(R_3, name="Res_4")
-            R_5 = residual_block(R_4, name="Res_5")
-            R_6 = residual_block(R_5, name="Res_6")
-            R_7 = residual_block(R_6, name="Res_7")
-            R_8 = residual_block(R_7, name="Res_8")
-            R_9 = residual_block(R_8, name="Res_9")
+            # R_3 = residual_block(R_2, name="Res_3")
+            # R_4 = residual_block(R_3, name="Res_4")
+            # R_5 = residual_block(R_4, name="Res_5")
+            # R_6 = residual_block(R_5, name="Res_6")
+            # R_7 = residual_block(R_6, name="Res_7")
+            # R_8 = residual_block(R_7, name="Res_8")
+            R_9 = residual_block(R_2, name="Res_9")
             u64 = deconv2d(R_9, output_shape=[width//2, height//2, 64], name="u64")
-            print u64
             u32 = deconv2d(u64, output_shape=[width, height, 64], name="u32")
-            print u32
             output = conv2d(u32, output_dim=3, kernel_size=7, stride=1, norm_fn=None, activation_fn=tf.nn.tanh, reflect=False, scope="output_gen")
             print output
             return output
@@ -69,12 +62,15 @@ class CycleGAN(object):
         with tf.variable_scope(name, reuse=reuse):
 
             # This structure is called patch-GAN
-            c64 = conv2d(tensor, output_dim=64, kernel_size=4, stride=1, activation_fn=lrelu, scope="c64", norm_fn=None)
-            c128 = conv2d(c64, output_dim=128, kernel_size=4, stride=1, activation_fn=lrelu, scope="c128")
-            c256 = conv2d(c128, output_dim=256, kernel_size=4, stride=1, activation_fn=lrelu, scope="c256")
-            c512 = conv2d(c256, output_dim=512, kernel_size=4, stride=1, activation_fn=lrelu, scope="c512")
+            c64 = conv2d(tensor, output_dim=64, kernel_size=4, stride=2, activation_fn=lrelu, scope="c64", norm_fn=None)
+            print c64
+            c128 = conv2d(c64, output_dim=128, kernel_size=4, stride=2, activation_fn=lrelu, scope="c128")
+            c256 = conv2d(c128, output_dim=256, kernel_size=4, stride=2, activation_fn=lrelu, scope="c256")
+            c512 = conv2d(c256, output_dim=512, kernel_size=4, stride=2, activation_fn=lrelu, scope="c512")
+            print c512
             output = conv2d(c512, output_dim=1, kernel_size=1, stride=1, activation_fn=tf.nn.sigmoid, scope="output_disc")
-
+            output = tf.reshape(output, [self.batch_size, -1])
+            print output
             return output
 
     def build_graph(self):
@@ -88,16 +84,16 @@ class CycleGAN(object):
         self.gen_BAB = self._generator(self.gen_BA, "generator_AB", reuse=True)
         self.gen_ABA = self._generator(self.gen_AB, "generator_BA", reuse=True)
 
-        self.real_disc_A = self._discriminator(self.domain_A, "disciminator_A")
+        self.real_disc_A = self._discriminator(self.domain_A, "discriminator_A")
         self.fake_disc_A = self._discriminator(self.gen_BA, "discriminator_A", reuse=True)
 
-        self.real_disc_B = self._discriminator(self.domain_B, "disciminator_B")
+        self.real_disc_B = self._discriminator(self.domain_B, "discriminator_B")
         self.fake_disc_B = self._discriminator(self.gen_AB, "discriminator_B", reuse=True)
 
         self.reconstruction_loss = self.lambda_ * (tf.reduce_mean(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_mean(tf.abs((self.gen_BAB- self.domain_B))))
 
-        self.disc_A_loss = -tf.reduce_mean(tf.log(self.real_disc_A) + tf.log(1.-self.fake_disc_A))
-        self.disc_B_loss = -tf.reduce_mean(tf.log(self.real_disc_B) + tf.log(1.-self.fake_disc_B))
+        self.disc_A_loss = -tf.reduce_mean(tf.log(self.real_disc_A + 1e-5) + tf.log(1.-self.fake_disc_A + 1e-5))
+        self.disc_B_loss = -tf.reduce_mean(tf.log(self.real_disc_B + 1e-5) + tf.log(1.-self.fake_disc_B + 1e-5))
 
         self.gen_BA_loss = -self.disc_A_loss + self.reconstruction_loss
         self.gen_AB_loss = -self.disc_B_loss + self.reconstruction_loss
@@ -135,3 +131,7 @@ class CycleGAN(object):
 
                     if idx % 50 == 0:
                         print sess.run([self.disc_A_loss, self.disc_B_loss, self.gen_AB_loss, self.gen_BA_loss], feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
+
+if __name__ == '__main__':
+    cyclegan = CycleGAN([256,256,3,3])
+    cyclegan.train_step()
