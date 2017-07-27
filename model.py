@@ -1,5 +1,6 @@
 from ops import *
 import numpy as np
+import matplotlib.pyplot as plt
 
 __author__="soobin3230"
 
@@ -63,14 +64,12 @@ class CycleGAN(object):
 
             # This structure is called patch-GAN
             c64 = conv2d(tensor, output_dim=64, kernel_size=4, stride=2, activation_fn=lrelu, scope="c64", norm_fn=None)
-            print c64
             c128 = conv2d(c64, output_dim=128, kernel_size=4, stride=2, activation_fn=lrelu, scope="c128")
             c256 = conv2d(c128, output_dim=256, kernel_size=4, stride=2, activation_fn=lrelu, scope="c256")
-            c512 = conv2d(c256, output_dim=512, kernel_size=4, stride=2, activation_fn=lrelu, scope="c512")
-            print c512
-            output = conv2d(c512, output_dim=1, kernel_size=1, stride=1, activation_fn=tf.nn.sigmoid, scope="output_disc")
-            output = tf.reshape(output, [self.batch_size, -1])
-            print output
+            c512 = conv2d(c256, output_dim=512, kernel_size=4, stride=1, activation_fn=lrelu, scope="c512", reflect=True)
+
+            output = conv2d(c512, output_dim=1, kernel_size=4, stride=1, activation_fn=tf.nn.sigmoid, scope="output_disc", norm_fn=None, reflect=True)
+
             return output
 
     def build_graph(self):
@@ -85,18 +84,21 @@ class CycleGAN(object):
         self.gen_ABA = self._generator(self.gen_AB, "generator_BA", reuse=True)
 
         self.real_disc_A = self._discriminator(self.domain_A, "discriminator_A")
+        print self.real_disc_A
         self.fake_disc_A = self._discriminator(self.gen_BA, "discriminator_A", reuse=True)
-
         self.real_disc_B = self._discriminator(self.domain_B, "discriminator_B")
         self.fake_disc_B = self._discriminator(self.gen_AB, "discriminator_B", reuse=True)
 
         self.reconstruction_loss = self.lambda_ * (tf.reduce_mean(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_mean(tf.abs((self.gen_BAB- self.domain_B))))
 
         self.disc_A_loss = -tf.reduce_mean(tf.log(self.real_disc_A + 1e-5) + tf.log(1.-self.fake_disc_A + 1e-5))
+        print self.disc_A_loss
         self.disc_B_loss = -tf.reduce_mean(tf.log(self.real_disc_B + 1e-5) + tf.log(1.-self.fake_disc_B + 1e-5))
-
+        print self.disc_B_loss
         self.gen_BA_loss = -self.disc_A_loss + self.reconstruction_loss
+        print self.gen_BA_loss
         self.gen_AB_loss = -self.disc_B_loss + self.reconstruction_loss
+        print self.gen_AB_loss
 
         self.gen_AB_train_op = tf.train.AdamOptimizer(self.learning_rate)\
             .minimize(self.gen_AB_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="generator_AB"))
@@ -117,7 +119,7 @@ class CycleGAN(object):
         with tf.Session() as sess:
             sess.run(init)
 
-            print sess.run([trainable_variables])
+            # print sess.run([trainable_variables])
             for i in range(self.epoch):
                 dataA = dataset_shuffling(dataA)
                 dataB = dataset_shuffling(dataB)
@@ -130,8 +132,16 @@ class CycleGAN(object):
                              feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
 
                     if idx % 50 == 0:
+                        # print idx
                         print sess.run([self.disc_A_loss, self.disc_B_loss, self.gen_AB_loss, self.gen_BA_loss], feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
 
+
+                img_AB = sess.run(self.gen_AB, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
+                img_BA = sess.run(self.gen_BA, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
+
+                plt.imsave("AB_%d.png" % i, img_AB[0])
+                plt.imsave("BA_%d.png" % i, img_BA[0])
+                
 if __name__ == '__main__':
     cyclegan = CycleGAN([256,256,3,3])
     cyclegan.train_step()
