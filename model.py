@@ -10,6 +10,7 @@ class CycleGAN(object):
 
     def __init__(self, shape, epoch=2000, lambda_=1., learning_rate=0.0001):
         self.lambda_ = lambda_
+        self.gen_weight = 2.
         self.learning_rate = learning_rate
         width, height, channel_A, channel_B = shape[0], shape[1], shape[2], shape[3]
         self.domain_A = tf.placeholder(tf.float32, [None, width, height, channel_A])
@@ -106,7 +107,7 @@ class CycleGAN(object):
         self.disc_A_loss = tf.reduce_mean(tf.square(1 - self.real_disc_A) + tf.square(self.fake_disc_A)) / 2
         self.disc_B_loss = tf.reduce_mean(tf.square(1 - self.real_disc_B) + tf.square(self.fake_disc_B)) / 2
         self.gen_BA_loss = tf.reduce_mean(tf.square(1 - self.fake_disc_A)) / 2 + self.reconstruction_loss
-        self.gen_AB_loss = tf.reduce_mean(tf.square(1 - self.fake_disc_B)) / 2 + self.reconstruction_loss
+        self.gen_AB_loss = self.gen_weight * tf.reduce_mean(tf.square(1 - self.fake_disc_B)) / 2 + self.reconstruction_loss
 
 
         self.gen_AB_train_op = tf.train.AdamOptimizer(self.learning_rate)\
@@ -141,8 +142,13 @@ class CycleGAN(object):
                 for idx in xrange(batch_idxs):
                     batch_A = dataA[idx * self.batch_size: (idx+1) * self.batch_size]
                     batch_B = dataB[idx * self.batch_size: (idx + 1) * self.batch_size]
-                    sess.run([self.gen_AB_train_op, self.gen_BA_train_op, self.disc_A_train_op, self.disc_B_train_op],
-                             feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
+
+                    for _ in range(3):
+                        sess.run([self.disc_A_train_op, self.disc_B_train_op],
+                                 feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
+
+                    sess.run([self.gen_AB_train_op, self.gen_BA_train_op],
+                             feed_dict={self.domain_A: batch_A, self.domain_B: batch_B})
 
                     if idx % 50 == 0:
                         # print idx
