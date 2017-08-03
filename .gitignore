@@ -1,3 +1,7 @@
 .idea/*
 data/*
 horse2zebra/*
+*.pyc
+.ipynb_checkpoints/*
+.DS_Store
+result/*
