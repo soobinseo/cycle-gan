@@ -1,12 +1,14 @@
 from ops import *
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 __author__="soobin3230"
 
+
 class CycleGAN(object):
 
-    def __init__(self, shape, epoch=200, lambda_=10., learning_rate=0.0001):
+    def __init__(self, shape, epoch=2000, lambda_=1., learning_rate=0.0001):
         self.lambda_ = lambda_
         self.learning_rate = learning_rate
         width, height, channel_A, channel_B = shape[0], shape[1], shape[2], shape[3]
@@ -39,14 +41,14 @@ class CycleGAN(object):
             d64 = conv2d(c7s1, output_dim=64, kernel_size=3, stride=2, reflect=True, scope="d64")
             d128 = conv2d(d64, output_dim=128, kernel_size=3, stride=2, reflect=True, scope="d128")
             R_1 = residual_block(d128, name="Res_1")
-            # R_2 = residual_block(R_1, name="Res_2")
-            # R_3 = residual_block(R_2, name="Res_3")
-            # R_4 = residual_block(R_3, name="Res_4")
-            # R_5 = residual_block(R_4, name="Res_5")
+            R_2 = residual_block(R_1, name="Res_2")
+            R_3 = residual_block(R_2, name="Res_3")
+            R_4 = residual_block(R_3, name="Res_4")
+            R_5 = residual_block(R_4, name="Res_5")
             # R_6 = residual_block(R_5, name="Res_6")
             # R_7 = residual_block(R_6, name="Res_7")
             # R_8 = residual_block(R_7, name="Res_8")
-            R_9 = residual_block(R_1, name="Res_9")
+            R_9 = residual_block(R_5, name="Res_9")
             u64 = deconv2d(R_9, output_shape=[width//2, height//2, 64], name="u64")
             u32 = deconv2d(u64, output_shape=[width, height, 64], name="u32")
             output = conv2d(u32, output_dim=3, kernel_size=7, stride=1, norm_fn=None, activation_fn=tf.nn.tanh, reflect=False, scope="output_gen")
@@ -71,6 +73,8 @@ class CycleGAN(object):
             output = conv2d(c512, output_dim=1, kernel_size=4, stride=1, activation_fn=tf.nn.sigmoid, scope="output_disc", norm_fn=None, reflect=True)
 
             return output
+
+
 
     def build_graph(self):
         """
@@ -98,11 +102,11 @@ class CycleGAN(object):
         # self.gen_AB_loss = -self.disc_B_loss + self.reconstruction_loss
 
         # LSGAN loss
-        self.reconstruction_loss = self.lambda_ * (tf.reduce_sum(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_sum(tf.abs((self.gen_BAB- self.domain_B))))
-        self.disc_A_loss = tf.reduce_sum(tf.square(1 - self.real_disc_A) + tf.square(self.fake_disc_A)) / 2
-        self.disc_B_loss = tf.reduce_sum(tf.square(1 - self.real_disc_B) + tf.square(self.fake_disc_B)) / 2
-        self.gen_BA_loss = tf.reduce_sum(tf.square(1 - self.fake_disc_A)) / 2 + self.reconstruction_loss
-        self.gen_AB_loss = tf.reduce_sum(tf.square(1 - self.fake_disc_B)) / 2 + self.reconstruction_loss
+        # self.reconstruction_loss = self.lambda_ * (tf.reduce_mean(tf.abs((self.gen_ABA - self.domain_A))) + tf.reduce_mean(tf.abs((self.gen_BAB- self.domain_B))))
+        self.disc_A_loss = tf.reduce_mean(tf.square(1 - self.real_disc_A) + tf.square(self.fake_disc_A)) / 2
+        self.disc_B_loss = tf.reduce_mean(tf.square(1 - self.real_disc_B) + tf.square(self.fake_disc_B)) / 2
+        self.gen_BA_loss = tf.reduce_mean(tf.square(1 - self.fake_disc_A)) / 2 + self.reconstruction_loss
+        self.gen_AB_loss = tf.reduce_mean(tf.square(1 - self.fake_disc_B)) / 2 + self.reconstruction_loss
 
 
         self.gen_AB_train_op = tf.train.AdamOptimizer(self.learning_rate)\
@@ -119,12 +123,14 @@ class CycleGAN(object):
         saver = tf.train.Saver()
 
         dataA, dataB = self._load_dataset()
-        dataA, dataB = dataA / 255, dataB / 255
+        dataA, dataB = dataA / 255., dataB / 255.
         # trainable_variables = tf.trainable_variables()
 
         with tf.Session() as sess:
             sess.run(init)
 
+            imgs_A = list()
+            imgs_B = list()
 
             # print sess.run([trainable_variables])
             for i in range(self.epoch):
@@ -140,14 +146,21 @@ class CycleGAN(object):
 
                     if idx % 50 == 0:
                         # print idx
+                        sys.stdout.flush()
                         print sess.run([self.disc_A_loss, self.disc_B_loss, self.gen_AB_loss, self.gen_BA_loss], feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
 
 
                 img_AB = sess.run(self.gen_AB, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
                 img_BA = sess.run(self.gen_BA, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
 
-                plt.imsave("AB_%d.png" % i, img_AB[0])
-                plt.imsave("BA_%d.png" % i, img_BA[0])
+                imgs_A.append(img_AB)
+                imgs_B.append(img_BA)
+
+                plt.imsave("AB_%d.png" % i, bgr2rgb(img_AB[0]) * 255.)
+                plt.imsave("BA_%d.png" % i, bgr2rgb(img_BA[0]) * 255.)
+
+            np.save("./result/AB.npy", imgs_A)
+            np.save("./result/BA.npy", imgs_B)
 
             saver.save(sess, "./result/model.ckpt")
 

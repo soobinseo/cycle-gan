@@ -79,3 +79,11 @@ def residual_block(tensor, name, kernel_size=3):
 
         return tensor + conv2
 
+
+def bgr2rgb(bgr, shape=[256, 256, 3]):
+    rgb = np.zeros(shape)
+    rgb[:, :, 0] = bgr[:, :, 2]
+    rgb[:, :, 1] = bgr[:, :, 1]
+    rgb[:, :, 2] = bgr[:, :, 0]
+
+    return rgb
