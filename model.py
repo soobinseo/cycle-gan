@@ -128,6 +128,8 @@ class CycleGAN(object):
 
         tf.summary.image("gen_AB_image", self.gen_AB * 255)
         tf.summary.image("gen_BA_image", self.gen_BA * 255)
+        tf.summary.image("gen_AB", self.gen_AB)
+        tf.summary.image("gen_BA", self.gen_BA)
 
         self.merged = tf.summary.merge_all()
 
