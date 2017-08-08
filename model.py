@@ -119,6 +119,18 @@ class CycleGAN(object):
         self.disc_B_train_op = tf.train.AdamOptimizer(self.learning_rate)\
             .minimize(self.disc_B_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="discriminator_B"))
 
+        # Summary
+
+        tf.summary.scalar("disc_A_loss", self.disc_A_loss)
+        tf.summary.scalar("disc_B_loss", self.disc_B_loss)
+        tf.summary.scalar("gen_AB_loss", self.gen_AB_loss)
+        tf.summary.scalar("gen_BA_loss", self.gen_BA_loss)
+
+        tf.summary.image("gen_AB_image", self.gen_AB * 255)
+        tf.summary.image("gen_BA_image", self.gen_BA * 255)
+
+        self.merged = tf.summary.merge_all()
+
     def train_step(self):
         sv = tf.train.Supervisor(logdir='./result_new', save_model_secs=0)
 
