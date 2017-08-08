@@ -163,6 +163,7 @@ class CycleGAN(object):
                     if idx % 50 == 0:
                         # print idx
                         sys.stdout.flush()
+                        print "epoch %d, step %d" % (i, idx)
                         print sess.run([self.disc_A_loss, self.disc_B_loss, self.gen_AB_loss, self.gen_BA_loss], feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
 
 
