@@ -126,8 +126,8 @@ class CycleGAN(object):
         tf.summary.scalar("gen_AB_loss", self.gen_AB_loss)
         tf.summary.scalar("gen_BA_loss", self.gen_BA_loss)
 
-        tf.summary.image("gen_AB_image", self.gen_AB * 255)
-        tf.summary.image("gen_BA_image", self.gen_BA * 255)
+        tf.summary.image("gen_AB_image", self.gen_AB[0] * 255)
+        tf.summary.image("gen_BA_image", self.gen_BA[0] * 255)
 
         self.merged = tf.summary.merge_all()
 
@@ -178,8 +178,8 @@ class CycleGAN(object):
 
                 sv.saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
 
-            # np.save("./result_new/AB.npy", imgs_A)
-            # np.save("./result_new/BA.npy", imgs_B)
+            np.save("./result_new/AB.npy", imgs_A)
+            np.save("./result_new/BA.npy", imgs_B)
 
 
 
