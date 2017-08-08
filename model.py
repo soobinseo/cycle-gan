@@ -179,8 +179,8 @@ class CycleGAN(object):
                 merged = sess.run(self.merged, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
                 writer.add_summary(merged, i)
 
-                plt.imsave("AB_%d.png" % i, img_AB[0] * 255.)
-                plt.imsave("BA_%d.png" % i, img_BA[0] * 255.)
+                plt.imsave("./result_new/AB_%d.png" % i, img_AB[0] * 255.)
+                plt.imsave("./result_new/BA_%d.png" % i, img_BA[0] * 255.)
 
                 saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
 
