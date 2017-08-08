@@ -29,17 +29,14 @@ python model.py
 
 - Generate Horse to Zebra Image
 <p>
-  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/AB_1.png" width="112"/>
-  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/AB_2.png" width="112"/>
+  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/AB_1.png" width="256"/>
+  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/AB_2.png" width="256"/>
 </p>
 
 - Generate Zebra to Horse Image
 <p>
-  <img src="https://raw.githubusercontent.com/soobin3230/ARAE/master/png/real_42000.png" width="112"/>
-  <img src="https://raw.githubusercontent.com/soobin3230/ARAE/master/png/real_42000.png" width="112"/>
-  <img src="https://raw.githubusercontent.com/soobin3230/ARAE/master/png/real_42000.png" width="112"/>
+  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/BA_1.png" width="256"/>
+  <img src="https://raw.githubusercontent.com/soobin3230/cycle-gan/master/png/BA_2.png" width="256"/>
 </p>
 
 ## Notes
-
-I didn't multiply the critic gradient before backpropping to the encoder.
