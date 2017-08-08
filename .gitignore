@@ -5,3 +5,6 @@ horse2zebra/*
 .ipynb_checkpoints/*
 .DS_Store
 result/*
+nohup.out
+result_doubledis/*
+*.ipynb

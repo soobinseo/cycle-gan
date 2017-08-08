@@ -120,21 +120,19 @@ class CycleGAN(object):
             .minimize(self.disc_B_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="discriminator_B"))
 
     def train_step(self):
-        init = tf.global_variables_initializer()
-        saver = tf.train.Saver()
+        sv = tf.train.Supervisor(logdir='./result_new', save_model_secs=0)
 
         dataA, dataB = self._load_dataset()
         dataA, dataB = dataA / 255., dataB / 255.
-        # trainable_variables = tf.trainable_variables()
 
-        with tf.Session() as sess:
-            sess.run(init)
+        with sv.managed_session() as sess:
 
             imgs_A = list()
             imgs_B = list()
 
             # print sess.run([trainable_variables])
             for i in range(self.epoch):
+                if sv.should_stop(): break
                 dataA = dataset_shuffling(dataA)
                 dataB = dataset_shuffling(dataB)
                 batch_idxs = min(len(dataA), len(dataB)) // self.batch_size
@@ -162,13 +160,15 @@ class CycleGAN(object):
                 imgs_A.append(img_AB)
                 imgs_B.append(img_BA)
 
-                plt.imsave("AB_%d.png" % i, bgr2rgb(img_AB[0]) * 255.)
-                plt.imsave("BA_%d.png" % i, bgr2rgb(img_BA[0]) * 255.)
+                plt.imsave("AB_%d.png" % i, img_AB[0] * 255.)
+                plt.imsave("BA_%d.png" % i, img_BA[0] * 255.)
 
-            np.save("./result/AB.npy", imgs_A)
-            np.save("./result/BA.npy", imgs_B)
+                sv.saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
 
-            saver.save(sess, "./result/model.ckpt")
+            np.save("./result_new/AB.npy", imgs_A)
+            np.save("./result_new/BA.npy", imgs_B)
+
+
 
 if __name__ == '__main__':
     cyclegan = CycleGAN([256,256,3,3])
