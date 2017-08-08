@@ -132,19 +132,22 @@ class CycleGAN(object):
         self.merged = tf.summary.merge_all()
 
     def train_step(self):
-        sv = tf.train.Supervisor(logdir='./result_new', save_model_secs=0)
+        writer = tf.summary.FileWriter("./result_new")
+        init = tf.global_variables_initializer()
 
         dataA, dataB = self._load_dataset()
         dataA, dataB = dataA / 255., dataB / 255.
 
-        with sv.managed_session() as sess:
+        with tf.Session() as sess:
 
+            sess.run(init)
+            saver = tf.train.Saver()
             imgs_A = list()
             imgs_B = list()
 
             # print sess.run([trainable_variables])
             for i in range(self.epoch):
-                if sv.should_stop(): break
+
                 dataA = dataset_shuffling(dataA)
                 dataB = dataset_shuffling(dataB)
                 batch_idxs = min(len(dataA), len(dataB)) // self.batch_size
@@ -173,10 +176,13 @@ class CycleGAN(object):
                 imgs_A.append(img_AB)
                 imgs_B.append(img_BA)
 
+                merged = sess.run(self.merged, feed_dict={self.domain_A: batch_A, self.domain_B:batch_B})
+                writer.add_summary(merged, i)
+
                 plt.imsave("AB_%d.png" % i, img_AB[0] * 255.)
                 plt.imsave("BA_%d.png" % i, img_BA[0] * 255.)
 
-                sv.saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
+                saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
 
             np.save("./result_new/AB.npy", imgs_A)
             np.save("./result_new/BA.npy", imgs_B)
