@@ -141,8 +141,8 @@ class CycleGAN(object):
                     batch_A = dataA[idx * self.batch_size: (idx+1) * self.batch_size]
                     batch_B = dataB[idx * self.batch_size: (idx + 1) * self.batch_size]
 
-                    for _ in range(3):
-                        sess.run([self.disc_A_train_op, self.disc_B_train_op],
+                    # for _ in range(2):
+                    sess.run([self.disc_A_train_op, self.disc_B_train_op],
                                  feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
 
                     sess.run([self.gen_AB_train_op, self.gen_BA_train_op],
