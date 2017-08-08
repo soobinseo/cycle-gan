@@ -178,8 +178,8 @@ class CycleGAN(object):
 
                 sv.saver.save(sess, "./result_new/model_epoch_%d.ckpt" % i)
 
-            np.save("./result_new/AB.npy", imgs_A)
-            np.save("./result_new/BA.npy", imgs_B)
+            # np.save("./result_new/AB.npy", imgs_A)
+            # np.save("./result_new/BA.npy", imgs_B)
 
 
 
