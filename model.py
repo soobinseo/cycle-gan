@@ -196,7 +196,7 @@ class CycleGAN(object):
         dataA, dataB = dataA / 255., dataB / 255.
 
         batch_A = Image.open('dog.jpeg')
-        batch_A = (np.array(batch_A.resize((256,256), Image.ANTIALIAS).getdata()) / 255.).reshape([256,256,3])
+        batch_A = np.expand_dims(np.array(batch_A.resize((256,256), Image.ANTIALIAS).getdata()) / 255.).reshape([256,256,3], 0)
 
 
         with tf.Session() as sess:
