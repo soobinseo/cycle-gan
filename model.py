@@ -206,7 +206,7 @@ class CycleGAN(object):
             print "restore successfully!"
 
             for i in range(min(len(dataA), len(dataB))):
-                batch_B = dataB[i]
+                batch_B = np.expand_dims(dataB[i], 0)
                 generated = sess.run(self.gen_AB, feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
                 plt.imsave("./result_gen/AB_%d" % i, generated)
                 print "img save!"
