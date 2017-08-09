@@ -2,6 +2,7 @@ from ops import *
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from PIL import Image
 
 __author__="soobin3230"
 
@@ -189,6 +190,24 @@ class CycleGAN(object):
             np.save("./result_new/AB.npy", imgs_A)
             np.save("./result_new/BA.npy", imgs_B)
 
+    def generate(self):
+
+        dataA, dataB = self._load_dataset()
+        dataA, dataB = dataA / 255., dataB / 255.
+
+        batch_A = Image.open('/Users/soobin/Downloads/KakaoTalk_Photo_2017-08-08-15-23-28_83.jpeg')
+        batch_A = np.array(batch_A.resize((256,256), Image.ANTIALIAS).getdata()) / 255.
+
+
+        with tf.Session() as sess:
+            saver = tf.train.Saver()
+            saver.restore(sess, tf.train.latest_checkpoint('./result_new'))
+
+
+            for i in range(min(len(dataA), len(dataB))):
+                batch_B = dataB[i]
+                generated = sess.run(self.gen_AB, feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
+                plt.imsave("./result_gen/AB_%d" % i, generated)
 
 
 if __name__ == '__main__':

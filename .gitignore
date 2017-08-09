@@ -8,3 +8,4 @@ result/*
 nohup.out
 result_doubledis/*
 *.ipynb
+result_new/*
