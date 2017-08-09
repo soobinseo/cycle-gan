@@ -195,20 +195,20 @@ class CycleGAN(object):
         dataA, dataB = self._load_dataset()
         dataA, dataB = dataA / 255., dataB / 255.
 
-        batch_A = Image.open('/Users/soobin/Downloads/KakaoTalk_Photo_2017-08-08-15-23-28_83.jpeg')
-        batch_A = np.array(batch_A.resize((256,256), Image.ANTIALIAS).getdata()) / 255.
+        batch_A = Image.open('dog.jpeg')
+        batch_A = (np.array(batch_A.resize((256,256), Image.ANTIALIAS).getdata()) / 255.).reshape([256,256,3])
 
 
         with tf.Session() as sess:
             saver = tf.train.Saver()
             saver.restore(sess, tf.train.latest_checkpoint('./result_new'))
-
+            print "restore successfully!"
 
             for i in range(min(len(dataA), len(dataB))):
                 batch_B = dataB[i]
                 generated = sess.run(self.gen_AB, feed_dict={self.domain_A:batch_A, self.domain_B:batch_B})
                 plt.imsave("./result_gen/AB_%d" % i, generated)
-
+                print "img save!"
 
 if __name__ == '__main__':
     cyclegan = CycleGAN([256,256,3,3])
